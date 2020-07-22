@@ -1,0 +1,216 @@
+---
+title: "Trabalho Prático -- IGTI Data Analytics"
+output: github_document
+---
+## Autor
+
+Victor Wildner; vcwildm@gmail.com
+
+## Apresentação
+
+Para o projeto foi escolhido o data set [Netflix Shows](https://www.kaggle.com/shivamb/netflix-shows) para avaliar o catálogo de produção de conteúdo audiovisual da empresa. Nosso foco será verificar quais tem sido os trends da plataforma e os players mais influentes dela.
+Este artigo está escrito no formato de um livro de código (codebook), mostrando o passo a passo da resolução do problema, tendo por finalidade demonstrar como foram obtidos os resultados, permitindo reproducibilidade de toda a análise realizada.
+
+## Objetivos
+
+Exercitar os conceitos vistos em aula com um projeto de análise de dados. Esse projeto pretende explorar a metodologia envolvida na análise exploratória de dados e diagnóstico, abrangendo desde a formulação do problema até a apresentação do resultado.
+
+## Questionamentos
+
+A partir da análise prévia do data set foram levantadas as seguintes questões:
+
+**1 - Quais os países predominantes em produção de filmes e séries presentes no catálogo de streaming?**
+
+**2 - Em quais faixas etárias (selos) o conteúdo se encaixa?**
+
+**3 - Como a indústria de produção audiovisual se comportou ao longo dos anos?**
+
+## Setup
+
+Bibliotecas, seed e data set utilizado
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+set.seed(42)
+data <- read_csv("netflix_titles.csv")
+```
+
+# Análise Exploratória de Dados
+
+Inicialmente vamos visualizar o conteúdo presente no data set
+
+```{r}
+glimpse(data)
+```
+
+Pela leitura prévia, verificamos que há muitas tags misturadas, como por exemplo vários países inseridos na mesma produção de um filme, ou vários atores envolvidos com o mesmo filme/série.
+
+### Combinações de países registrados no Dataset
+
+```{r}
+n_distinct(data$country)
+```
+
+Aqui claramente observamos que há muitas combinações de países dentro de uma mesma observação na coluna "country".
+
+### Quantidade de registros de filmes e séries
+
+```{r}
+sum_type <- data %>% group_by(type) %>% 
+    count(.)
+sum_type
+```
+
+## 1 - Quais os países predominantes em produção de filmes e séries presentes no catálogo de streaming?
+
+Para realizar esse estudo vamos precisar fatorar as observações que estão conjuntas em "country" e colocá-las individualmente para assim conseguir contabilizá-las. Isso se deve a diversos filmes e séries possuírem co-autoria de pessoas em países distintos. Vamos fatorar a matriz em 12 observações únicas.
+
+```{r warning=FALSE}
+tidy_countries <- data %>% 
+    separate(
+        country, 
+        into = c("c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11", "c12"), 
+        sep = ",", 
+        convert = TRUE
+    )
+
+longer_countries <- tidy_countries %>% 
+    pivot_longer(
+        c("c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11", "c12"),
+        names_to = "country_sect",
+        values_to = "country_long"
+    ) %>% 
+    drop_na(country_long)
+```
+
+### Quantos registros foram cadastrados sem nenhum país? 
+
+```{r}
+print(
+    paste(
+        "O dataset possui", 
+        nrow(filter(data, is.na(data$country))), 
+        "filmes/séries sem país definido", 
+        sep = " "
+    )
+)
+```
+
+Vale ressaltar que foram removidos esses campos NA para prosseguir com a análise, portanto há 476 observações a menos que no data set original.
+
+```{r}
+count_country <- longer_countries %>% 
+    select(country_long) %>%
+    mutate(country_long = trimws(country_long)) %>% 
+    group_by(country_long) %>% 
+    count(country_long) %>%
+    arrange(desc(n))
+
+count_country_fit <- count_country %>% drop_na(country_long) %>% arrange(desc(n))
+top_countries <- head(count_country_fit, n = 20)
+top_countries
+```
+
+Vamos plotar essa análise em um gráfico, para ter maior dimensão da posição entre os países que mais produziram filmes e séries.
+
+```{r}
+ggplot(top_countries, aes(x = reorder(country_long, -n), y = n)) +
+    geom_bar(aes(fill = n), stat = "identity") +
+    scale_fill_gradient(low = "orange", high = "red") +
+    theme_minimal() +
+    labs(x = "", y = "") +
+    theme(axis.text.x = element_text(angle = 90), legend.position = "none")
+```
+
+### Síntese
+
+Pelo gráfico podemos observar a distância enorme entre o primeiro e o segundo colocado. Os Estados Unidos ficaram disparados em primeiro lugar e possuem quase o triplo de conteúdo que o segundo colocado (Índia) na plataforma, a Índia também possui relativamente mais conteúdo que o Reino Unido, que também possui muito mais conteúdo que o Canadá. Sucessivamente as diferenças começam a se tornar gradativamente menores.
+
+## 2 - Em quais faixas etárias (selos) o conteúdo se encaixa?
+
+Para responder a pergunta, realizaremos a soma dos "ratings" individuais
+
+```{r}
+sum_rating <- data %>% group_by(rating) %>% 
+    count(.) %>% 
+    arrange(desc(n))
+
+sapply(names(sum_rating)[-1], function(x) {
+    sum_rating[paste0("percentage")] <<- sum_rating[x] / sum(sum_rating[x])
+})
+sum_rating
+
+ggplot(sum_rating, aes(x = "", y = n, fill = rating)) +
+    geom_bar(stat = "identity", width = 0.5, color = "white") +
+    theme_void() +
+    coord_polar("y", start = 0) +
+    labs(title = "Classificação do Conteúdo")
+```
+
+### Síntese
+
+Pela análise, verificamos que a maior parte do conteúdo presente na plataforma possui os selos `r sum_rating['rating'][[1]][1]` com `r round(sum_rating['percentage'][[1]][1] * 100, 2)`%, e `r sum_rating['rating'][[1]][2]` com `r round(sum_rating['percentage'][[1]][2] * 100, 2)`% de predominância nos dados.
+
+## 3 - Como a indústria de produção audiovisual se comportou ao longo dos anos?
+
+### Quantidade de registros por ano de lançamento
+
+```{r warning=FALSE}
+year <- data %>% group_by(release_year) %>% count(.) %>% arrange(release_year)
+
+## Removeremos 2020 pois ainda é ano em aberto
+
+year_fit <- year %>% filter(release_year != "2020")
+
+ggplot(year_fit, aes(x = release_year, y = n)) +
+    geom_smooth(formula = y ~ x, method = "loess", se = FALSE, lty = "dashed") +
+    geom_line(lwd = 1.5, alpha = 0.5) +
+    theme_minimal() +
+    labs(title = "Catálogo de Lançamentos por Ano", x = "", y = "")
+```
+
+Conseguimos visualizar que, apesar de 2018 ser o primeiro ano de queda na quantidade de filmes e séries publicados, há uma grande tendência de crescimento dessa indústria, como pode ser observado pela linha de tendência pontilhada.
+
+### Duração média dos filmes ao longo dos anos
+
+Inicialmente precisamos filtrar do data set apenas os registros contendo filmes
+
+```{r}
+movies <- data %>%
+    filter(type == "Movie")
+
+head(movies)
+```
+
+Agora precisamos limpar a coluna "duration" para representar apenas números
+
+```{r}
+movies$duration <- as.numeric(gsub(" min", "", movies$duration))
+```
+
+Vamos tirar a média de duração dos filmes por ano e plotar os resultados.
+
+```{r}
+mean_duration <- movies %>% 
+    group_by(release_year) %>%
+    summarise(mean = mean(duration)) 
+
+ggplot(mean_duration, aes(release_year, mean)) +
+    geom_point(alpha = 0.5, shape = 4) +
+    geom_smooth(formula = y ~ x, method = "loess", se = FALSE) +
+    labs(title = "Duração Média dos Filmes", x = "", y = "minutos") +
+    theme_minimal()
+```
+
+### Síntese
+
+Observou-se que dos anos 1940 até 1970 há acréscimo considerável na duração média dos filmes cadastrados na plataforma, mas que essa tendência declinou desde então e continuou verdadeira até a década de 2020. Vale observar que não foram removidos os outliers da observação, mas que o método de *loess* compensa a presença destes e que o ano de 2020 ainda não possui filmes suficientes cadastrados para considerar um aumento no tempo médio de duração em relação aos anos que o antecedem.
+
+
+### Referências
+
+*Kaggle -- Data Set Netflix Shows* (https://www.kaggle.com/shivamb/netflix-shows)
