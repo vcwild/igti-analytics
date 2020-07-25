@@ -1,11 +1,9 @@
 Trabalho Prático – IGTI Data Analytics
 ================
 
-## Autor
+[Apresentação](#overview) | [Análise Exploratória](#analysis) | [Questionamentos](#questions) | Conclusões: [01](#A01)  [02](#A02)  [03](#A03) | [Referências](#references)
 
-Victor Wildner; <vcwildm@gmail.com>
-
-## Apresentação
+## Apresentação <a name="overview" />
 
 Para o projeto foi escolhido o data set [Netflix
 Shows](https://www.kaggle.com/shivamb/netflix-shows) para avaliar o
@@ -23,18 +21,18 @@ dados. Esse projeto pretende explorar a metodologia envolvida na análise
 exploratória de dados e diagnóstico, abrangendo desde a formulação do
 problema até a apresentação do resultado.
 
-## Questionamentos
+## Questionamentos <a name="questions" />
 
 A partir da análise prévia do data set foram levantadas as seguintes
 questões:
 
-**1 - Quais os países predominantes em produção de filmes e séries
-presentes no catálogo de streaming?**
+**[1 - Quais os países predominantes em produção de filmes e séries
+presentes no catálogo de streaming?](#01)**
 
-**2 - Em quais faixas etárias (selos) o conteúdo se encaixa?**
+**[2 - Em quais faixas etárias (selos) o conteúdo se encaixa?](#02)**
 
-**3 - Como a indústria de produção audiovisual se comportou ao longo dos
-anos?**
+**[3 - Como a indústria de produção audiovisual se comportou ao longo dos
+anos?](#03)**
 
 ## Setup
 
@@ -46,7 +44,7 @@ set.seed(42)
 data <- read_csv("netflix_titles.csv")
 ```
 
-# Análise Exploratória de Dados
+# Análise Exploratória de Dados <a name="analysis" />
 
 Inicialmente vamos visualizar o conteúdo presente no data set
 
@@ -99,7 +97,7 @@ sum_type
     ## 1 Movie    4265
     ## 2 TV Show  1969
 
-## 1 - Quais os países predominantes em produção de filmes e séries presentes no catálogo de streaming?
+## 1 - Quais os países predominantes em produção de filmes e séries presentes no catálogo de streaming? <a name="01" />
 
 Para realizar esse estudo vamos precisar fatorar as observações que
 estão conjuntas em “country” e colocá-las individualmente para assim
@@ -195,7 +193,7 @@ ggplot(top_countries, aes(x = reorder(country_long, -n), y = n)) +
 
 ![](tp_igti_analytics_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
-### Síntese
+### Síntese <a name="A01" />
 
 Pelo gráfico podemos observar a distância enorme entre o primeiro e o
 segundo colocado. Os Estados Unidos ficaram disparados em primeiro lugar
@@ -204,7 +202,7 @@ plataforma, a Índia também possui relativamente mais conteúdo que o
 Reino Unido, que também possui muito mais conteúdo que o Canadá.
 Sucessivamente as diferenças começam a se tornar gradativamente menores.
 
-## 2 - Em quais faixas etárias (selos) o conteúdo se encaixa?
+## 2 - Em quais faixas etárias (selos) o conteúdo se encaixa? <a name="02" />
 
 Para responder a pergunta, realizaremos a soma dos “ratings” individuais
 
@@ -257,14 +255,14 @@ ggplot(sum_rating, aes(x = "", y = n, fill = rating)) +
 
 ![](tp_igti_analytics_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
-### Síntese
+### Síntese <a name="A02" />
 
 Pela análise, verificamos que a maior parte do conteúdo presente na
 plataforma possui os selos TV-MA com 32.52%, e TV-14 com 27.24% de
 predominância nos
 dados.
 
-## 3 - Como a indústria de produção audiovisual se comportou ao longo dos anos?
+## 3 - Como a indústria de produção audiovisual se comportou ao longo dos anos? <a name="03" />
 
 ### Quantidade de registros por ano de lançamento
 
@@ -336,7 +334,7 @@ ggplot(mean_duration, aes(release_year, mean)) +
 
 ![](tp_igti_analytics_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
-### Síntese
+### Síntese <a name="A03" />
 
 Observou-se que dos anos 1940 até 1970 há acréscimo considerável na
 duração média dos filmes cadastrados na plataforma, mas que essa
@@ -346,7 +344,7 @@ mas que o método de *loess* compensa a presença destes e que o ano de
 2020 ainda não possui filmes suficientes cadastrados para considerar um
 aumento no tempo médio de duração em relação aos anos que o antecedem.
 
-### Referências
+### Referências <a name="references" />
 
 *Kaggle – Data Set Netflix Shows*
 (<https://www.kaggle.com/shivamb/netflix-shows>)
